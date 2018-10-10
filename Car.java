@@ -5,68 +5,27 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Semaphore;
 
 public class Car implements Runnable {
-    private static int CARS_COUNT;
-    static {
-        CARS_COUNT = 0;
-    }
-
+    private static int CARS_COUNT = 0;
 
     private Race race;
     private int speed;
-    private String name;
 
-    private final CountDownLatch startLatch;
-    private final Semaphore tunnelSemaphore;
-    private final CyclicBarrier finishBarrier;
+    int getSpeed() {return speed; }
 
     public Car(Race race, int speed, CountDownLatch startLatch, Semaphore tunnelSemaphore, CyclicBarrier finishBarrier) {
         CARS_COUNT++;
         this.race = race;
         this.speed = speed;
-        this.name = "Участник #" + CARS_COUNT;
-
-        this.startLatch = startLatch;
-        this.tunnelSemaphore = tunnelSemaphore;
-        this.finishBarrier = finishBarrier;
+        CARS_COUNT++;
+        setName("Участник #" + CARS_COUNT);
     }
-
-    public String getName() {
-        return name;
-    }
-    public int getSpeed() {
-        return speed;
-    }
-
     @Override
-    public void run() {
-        try {
-            System.out.println(this.name + " готовится");
-            Thread.sleep(500 + (int)(Math.random() * 800));
-            System.out.println(this.name + " готов");
-
-            startLatch.countDown();
-            startLatch.await();
-            for (int i = 0; i < race.getStages().size(); i++) {
-
-                if(race.getStages().get(i) instanceof Tunnel) {
-                    tunnelSemaphore.acquire();
-                    race.getStages().get(i).go(this);
-                    tunnelSemaphore.release();
-                    continue;
-                }
-                race.getStages().get(i).go(this);
-            }
-            synchronized (race) {
-                if(!this.race.hasWinner()) {
-                    System.out.println(this.name + " ПОБЕДИТЕЛЬ");
-                    this.race.setWinner();
-                }
-            }
-
-            finishBarrier.await();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+public void run() {
+    race.start(getName());
+    race.getStages().forEach(stage -> stage.go(this));
+    race.finish(getName());
     }
 }
+
+
 
